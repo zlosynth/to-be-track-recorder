@@ -17,7 +17,7 @@ clippy:
 
 .PHONY: test
 test:
-	$(CARGO) test --test main
+	$(CARGO) test --test test
 
 .PHONY: update
 update:

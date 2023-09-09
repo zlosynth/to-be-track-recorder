@@ -13,5 +13,5 @@ cucumber = "0.20"
 futures = "0.3"
 
 [[test]]
-name = "main"
+name = "test"
 harness = false  # allows Cucumber to print output instead of libtest
