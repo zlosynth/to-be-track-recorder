@@ -1,5 +1,5 @@
 [package]
-name = "placeholder-control"
+name = "placeholder-tests"
 version = "0.1.0"
 edition = "2021"
 authors = ["Petr Horáček <petr@zlosynth.com>"]
