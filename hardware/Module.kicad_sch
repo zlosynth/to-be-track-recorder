@@ -2441,7 +2441,7 @@
   (symbol (lib_id "Connector:AudioJack2_SwitchT") (at 229.235 127.635 0) (mirror x) (unit 1)
     (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced)
     (uuid 221f9197-0732-43c0-afe0-88a6478d9a91)
-    (property "Reference" "J7" (at 223.52 125.73 0)
+    (property "Reference" "J8" (at 223.52 125.73 0)
       (effects (font (size 1.27 1.27)) (justify right))
     )
     (property "Value" "PFB CV" (at 223.52 128.27 0)
@@ -2459,7 +2459,7 @@
     (instances
       (project "Module"
         (path "/40a346e8-b263-43b4-ad10-e3d18ca2d073"
-          (reference "J7") (unit 1)
+          (reference "J8") (unit 1)
         )
       )
       (project "Module"
@@ -4054,7 +4054,7 @@
   (symbol (lib_id "Connector:AudioJack2_SwitchT") (at 233.045 104.14 180) (unit 1)
     (in_bom yes) (on_board yes) (dnp no)
     (uuid 93261a1f-7562-4c38-8f51-7ccf50a984f5)
-    (property "Reference" "J8" (at 238.76 102.235 0)
+    (property "Reference" "J7" (at 238.76 102.235 0)
       (effects (font (size 1.27 1.27)))
     )
     (property "Value" "End" (at 239.395 105.41 0)
@@ -4072,7 +4072,7 @@
     (instances
       (project "Module"
         (path "/40a346e8-b263-43b4-ad10-e3d18ca2d073"
-          (reference "J8") (unit 1)
+          (reference "J7") (unit 1)
         )
       )
       (project "Module"
