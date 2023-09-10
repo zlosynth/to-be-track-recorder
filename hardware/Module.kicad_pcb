@@ -1130,7 +1130,7 @@
 
   (footprint "MountingHole:MountingHole_2.2mm_M2" locked (layer "B.Cu")
     (tstamp 3e9e284c-562f-4a38-8315-916c4043c28f)
-    (at 44.017142 21.59 180)
+    (at 136.12 75.96 180)
     (descr "Mounting Hole 2.2mm, no annular, M2")
     (tags "mounting hole 2.2mm no annular m2")
     (attr exclude_from_pos_files exclude_from_bom)
@@ -4613,7 +4613,7 @@
     )
   )
 
-  (gr_circle (center 44.037142 21.58) (end 41.037142 21.58)
+  (gr_circle (center 136.14 75.95) (end 133.14 75.95)
     (stroke (width 0.15) (type solid)) (fill none) (layer "F.SilkS") (tstamp 576a2644-eb9c-4bea-a3b9-9d8b6b1d61d8))
   (gr_circle (center 117.22 144.300133) (end 116.23 145.440133)
     (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts") (tstamp 0e79b9f7-3921-4ed6-b415-54ba2dd8d1b4))
@@ -4633,7 +4633,7 @@
     (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts") (tstamp ea954959-c38e-475c-a90f-c12e17c5b852))
   (gr_circle (center 107.12 144.310133) (end 106.13 145.450133)
     (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts") (tstamp f1dda580-4dae-4aac-8a84-3e15e304483a))
-  (gr_text "Standoff" (at 44.107142 25.56) (layer "F.SilkS") (tstamp d3beeead-2272-4b1c-bcd6-e3118b13d853)
+  (gr_text "Standoff" (at 136.21 79.93) (layer "F.SilkS") (tstamp d3beeead-2272-4b1c-bcd6-e3118b13d853)
     (effects (font (size 1 1) (thickness 0.15)))
   )
 
