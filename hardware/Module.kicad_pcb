@@ -5,6 +5,13 @@
   )
 
   (paper "A4")
+  (title_block
+    (title "To Be Track Recorder")
+    (company "Petr Horáček")
+    (comment 1 "petr@zlosynth.com")
+    (comment 3 "CC BY-SA")
+  )
+
   (layers
     (0 "F.Cu" signal)
     (31 "B.Cu" signal)
