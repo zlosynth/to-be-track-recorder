@@ -5700,7 +5700,7 @@
   (gr_text "SM D" (at 80.35 129.15) (layer "F.SilkS") (tstamp 012c7840-ab9e-4119-99fb-de1ac8bca32e)
     (effects (font (size 1 1) (thickness 0.15)))
   )
-  (gr_text "Petr Horáček <petr@zlosynth.com>, 2023, CC BY-SA" (at 140 98.05 90) (layer "F.SilkS") (tstamp 10bda4f2-2a78-48bc-931d-a0cea67a8edf)
+  (gr_text "Petr Horáček <petr@zlosynth.com>, 2023, CC BY-SA" (at 140 64.25 90) (layer "F.SilkS") (tstamp 10bda4f2-2a78-48bc-931d-a0cea67a8edf)
     (effects (font (size 1 1) (thickness 0.15)))
   )
   (gr_text "board proto-1" (at 140 127.75 90) (layer "F.SilkS") (tstamp 189a34d4-22c6-400a-8dd1-baf9f5f89b42)
