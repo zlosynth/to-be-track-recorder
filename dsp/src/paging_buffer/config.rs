@@ -1,1 +1,1 @@
-struct Config {}
+pub(crate) struct Config {}

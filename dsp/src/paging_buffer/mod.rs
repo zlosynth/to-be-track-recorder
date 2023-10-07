@@ -62,3 +62,214 @@ mod config;
 mod manager;
 mod page;
 mod track;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_flow_starting_from_nothing_with_long_recording() {
+        use heapless::spsc::Queue;
+
+        use config::Config;
+        use manager::Manager;
+        use page::{Page, PageRequest};
+
+        // TODO: Pass Page reference token (pointing to a place in a memory singleton)
+
+        let mut save_request_queue: Queue<Page, 4> = Queue::new();
+        let (mut save_request_producer, mut save_request_consumer) = save_request_queue.split();
+
+        let mut load_request_queue: Queue<PageRequest, 4> = Queue::new();
+        let (mut load_request_producer, mut load_request_consumer) = load_request_queue.split();
+
+        let mut load_response_queue: Queue<Page, 4> = Queue::new();
+        let (mut load_response_producer, mut load_response_consumer) = load_response_queue.split();
+
+        let mut config_queue: Queue<Config, 4> = Queue::new();
+        let (mut config_producer, mut config_consumer) = config_queue.split();
+
+        // Owned by SD manager.
+        let mut sd: [Option<Page>; 4] = [None, None, None, None];
+
+        // Owned by the caller. Running as DSP loop.
+        let mut manager = Manager::new();
+
+        // // Loading metadata about the selected sample from SD.
+        // // This will be solely based on the length of the file found on the file
+        // // system. There should be no metadata saved on side.
+        // caller.set_sample(sample::Sample::new());
+        // caller.start_loading_next_page(&mut load_request_producer);
+
+        // // SD Manager initializing the page and passing it to the caller.
+        // {
+        //     let request = load_request_consumer
+        //         .dequeue()
+        //         .expect("Load request must be received");
+        //     assert!(
+        //         matches!(request, PageRequest::Blank(HARDCODED_PARENT, 0)),
+        //         "The first request must be for a blank page"
+        //     );
+        //     load_response_producer
+        //         .enqueue(Page::new(HARDCODED_PARENT, 0))
+        //         .ok()
+        //         .unwrap();
+        // }
+
+        // // Control loop issues request for recording.
+        // {
+        //     dsp_config_producer.enqueue(DSPConfig::new()).ok().unwrap();
+        // }
+
+        // // Caller records into the first page until its full. This would span multiple
+        // // DSP ticks.
+        // loop {
+        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+
+        //     if caller.is_waiting_for_page() {
+        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
+        //         if acquired {
+        //             caller.start_loading_next_page(&mut load_request_producer);
+        //         }
+        //     }
+
+        //     caller.process(&mut [0.0; 32]);
+
+        //     if caller.has_full_page() {
+        //         caller.start_saving(&mut save_request_producer);
+        //         break;
+        //     }
+        // }
+
+        // // SD manager
+        // {
+        //     let _request = load_request_consumer.dequeue().unwrap();
+        //     load_response_producer
+        //         .enqueue(Page::new(HARDCODED_PARENT, 1))
+        //         .ok()
+        //         .unwrap();
+
+        //     let page_1 = save_request_consumer.dequeue().unwrap();
+        //     sd[0] = Some(page_1);
+        // }
+
+        // // Caller records into the second page until its full. This would span multiple
+        // // DSP ticks.
+        // loop {
+        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+
+        //     if caller.is_waiting_for_page() {
+        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
+        //         if acquired {
+        //             caller.start_loading_next_page(&mut load_request_producer);
+        //         }
+        //     }
+
+        //     caller.process(&mut [0.0; 32]);
+
+        //     if caller.has_full_page() {
+        //         caller.start_saving(&mut save_request_producer);
+        //         break;
+        //     }
+        // }
+
+        // // SD manager
+        // {
+        //     let _request = load_request_consumer.dequeue().unwrap();
+        //     load_response_producer
+        //         .enqueue(Page::new(HARDCODED_PARENT, 2))
+        //         .ok()
+        //         .unwrap();
+
+        //     let page_2 = save_request_consumer.dequeue().unwrap();
+        //     sd[1] = Some(page_2);
+        // }
+
+        // // Caller records into the third page, but is interrupted with a position reset.
+        // {
+        //     for _ in 0..3 {
+        //         caller.process_configuration_updates(&mut dsp_config_consumer);
+
+        //         if caller.is_waiting_for_page() {
+        //             let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
+        //             if acquired {
+        //                 caller.start_loading_next_page(&mut load_request_producer);
+        //             }
+        //         }
+
+        //         caller.process(&mut [0.0; 32]);
+        //     }
+
+        //     caller.start_saving(&mut save_request_producer);
+        //     caller.reset_position();
+        // }
+
+        // // SD manager
+        // {
+        //     let _request = load_request_consumer.dequeue().unwrap();
+        //     load_response_producer
+        //         .enqueue(Page::new(HARDCODED_PARENT, 1))
+        //         .ok()
+        //         .unwrap();
+
+        //     let page_3 = save_request_consumer.dequeue().unwrap();
+        //     sd[2] = Some(page_3);
+        // }
+
+        // // Caller records into the first page again
+        // loop {
+        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+
+        //     if caller.is_waiting_for_page() {
+        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
+        //         if acquired {
+        //             caller.start_loading_next_page(&mut load_request_producer);
+        //         }
+        //     }
+
+        //     caller.process(&mut [0.0; 32]);
+
+        //     if caller.has_full_page() {
+        //         caller.start_saving(&mut save_request_producer);
+        //         break;
+        //     }
+        // }
+
+        // // SD manager stores the first page and returns next.
+        // {
+        //     let page_1 = save_request_consumer.dequeue().unwrap();
+        //     sd[0] = Some(page_1);
+
+        //     let _request = load_request_consumer.dequeue().unwrap();
+        //     load_response_producer
+        //         .enqueue(sd[1].clone().unwrap())
+        //         .ok()
+        //         .unwrap();
+        // }
+
+        // // Control loop issues request for recording.
+        // {
+        //     dsp_config_producer.enqueue(DSPConfig::new()).ok().unwrap();
+        // }
+
+        // // Caller records into the first page until its full. This would span multiple
+        // // DSP ticks.
+        // loop {
+        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+
+        //     if caller.is_waiting_for_page() {
+        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
+        //         if acquired {
+        //             caller.start_loading_next_page(&mut load_request_producer);
+        //         }
+        //     }
+
+        //     caller.process(&mut [0.0; 32]);
+
+        //     if caller.has_full_page() {
+        //         caller.start_saving(&mut save_request_producer);
+        //         break;
+        //     }
+        // }
+    }
+}

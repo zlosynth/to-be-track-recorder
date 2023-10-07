@@ -1,4 +1,4 @@
-struct Page {}
+pub(crate) struct Page {}
 
 impl Page {
     fn new() -> Self {
@@ -6,9 +6,9 @@ impl Page {
     }
 }
 
-enum PageRequest {
+pub(crate) enum PageRequest {
     Load(PageId),
     Blank(PageId),
 }
 
-struct PageId {}
+pub(crate) struct PageId {}
