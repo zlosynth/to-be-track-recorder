@@ -1,3 +1,5 @@
+mod paging_buffer;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
