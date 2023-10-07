@@ -5,3 +5,10 @@ impl Page {
         Self {}
     }
 }
+
+enum PageRequest {
+    Load(PageId),
+    Blank(PageId),
+}
+
+struct PageId {}
