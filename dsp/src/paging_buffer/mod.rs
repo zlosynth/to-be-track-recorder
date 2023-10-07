@@ -58,10 +58,10 @@
 //!    its own cache and passes it back to the buffer.
 
 mod buffer;
+mod cassette;
 mod config;
 mod manager;
 mod page;
-mod track;
 
 #[cfg(test)]
 mod tests {
