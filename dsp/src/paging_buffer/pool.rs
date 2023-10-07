@@ -25,13 +25,13 @@ impl Pool {
             .0;
         self.store[free] = Some(Page::new(id));
         Handle {
-            index: free,
+            pool_index: free,
             address: &mut self.store[free] as *mut Option<Page>,
         }
     }
 
     fn drop_page(&mut self, handle: Handle) {
-        self.store[handle.index] = None;
+        self.store[handle.pool_index] = None;
     }
 
     fn stored(&self) -> usize {
@@ -40,13 +40,13 @@ impl Pool {
 }
 
 /// Handle expresses ownership and allows access to a `Page` stored in the `Pool`.
-struct Handle {
-    index: usize,
+pub(crate) struct Handle {
+    pool_index: usize,
     address: *mut Option<Page>,
 }
 
 impl Handle {
-    fn page_ref(&self) -> &Page {
+    pub(crate) fn page_ref(&self) -> &Page {
         unsafe { &*self.address }.as_ref().unwrap()
     }
 

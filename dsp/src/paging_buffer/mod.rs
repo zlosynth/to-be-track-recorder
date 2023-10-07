@@ -72,19 +72,19 @@ mod tests {
     fn full_flow_starting_from_nothing_with_long_recording() {
         use heapless::spsc::Queue;
 
+        use cassette::Cassette;
         use config::Config;
         use manager::Manager;
         use page::{Page, PageRequest};
+        use pool::Handle;
 
-        // TODO: Pass Page reference token (pointing to a place in a memory singleton)
-
-        let mut save_request_queue: Queue<Page, 4> = Queue::new();
+        let mut save_request_queue: Queue<Handle, 4> = Queue::new();
         let (mut save_request_producer, mut save_request_consumer) = save_request_queue.split();
 
         let mut load_request_queue: Queue<PageRequest, 4> = Queue::new();
         let (mut load_request_producer, mut load_request_consumer) = load_request_queue.split();
 
-        let mut load_response_queue: Queue<Page, 4> = Queue::new();
+        let mut load_response_queue: Queue<Handle, 4> = Queue::new();
         let (mut load_response_producer, mut load_response_consumer) = load_response_queue.split();
 
         let mut config_queue: Queue<Config, 4> = Queue::new();
@@ -96,11 +96,11 @@ mod tests {
         // Owned by the caller. Running as DSP loop.
         let mut manager = Manager::new();
 
-        // // Loading metadata about the selected sample from SD.
-        // // This will be solely based on the length of the file found on the file
-        // // system. There should be no metadata saved on side.
-        // caller.set_sample(sample::Sample::new());
-        // caller.start_loading_next_page(&mut load_request_producer);
+        // Loading metadata about the selected cassette from SD.
+        // This will be solely based on the length of the file found on the file
+        // system. There should be no metadata saved on side.
+        manager.set_cassette(Cassette::new(1));
+        manager.start_loading_next_page(&mut load_request_producer);
 
         // // SD Manager initializing the page and passing it to the caller.
         // {
