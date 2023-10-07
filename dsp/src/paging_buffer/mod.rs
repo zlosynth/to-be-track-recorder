@@ -62,6 +62,7 @@ mod cassette;
 mod config;
 mod manager;
 mod page;
+mod pool;
 
 #[cfg(test)]
 mod tests {
