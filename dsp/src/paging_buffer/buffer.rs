@@ -12,6 +12,7 @@ pub(crate) struct Buffer {
     active_page: Option<Handle>,
     pointer: usize,
     cassette: Cassette,
+    pub recording: bool,
 }
 
 impl Buffer {
@@ -20,6 +21,7 @@ impl Buffer {
             active_page: None,
             pointer: 0,
             cassette,
+            recording: false,
         }
     }
 

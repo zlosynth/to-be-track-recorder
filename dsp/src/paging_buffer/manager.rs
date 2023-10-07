@@ -1,9 +1,10 @@
 //! Non-blocking public interface.
 
-use heapless::spsc::Producer;
+use heapless::spsc::{Consumer, Producer};
 
 use super::buffer::Buffer;
 use super::cassette::Cassette;
+use super::config::Config;
 use super::page::PageRequest;
 
 /// Manager is a non-blocking public interface to paging buffer.
@@ -30,5 +31,15 @@ impl Manager {
             .enqueue(next_page_request)
             .ok()
             .unwrap();
+    }
+
+    pub(crate) fn process_configuration_updates(
+        &mut self,
+        config_consumer: &mut Consumer<Config, 4>,
+    ) {
+        let buffer = self.buffer.as_mut().unwrap();
+        while let Some(config) = config_consumer.dequeue() {
+            buffer.recording = config.recording;
+        }
     }
 }

@@ -119,30 +119,33 @@ mod tests {
             load_response_producer.enqueue(handle).ok().unwrap();
         }
 
-        // // Control loop issues request for recording.
-        // {
-        //     dsp_config_producer.enqueue(DSPConfig::new()).ok().unwrap();
-        // }
+        // Control loop issues request for recording.
+        {
+            config_producer
+                .enqueue(Config { recording: true })
+                .ok()
+                .unwrap();
+        }
 
-        // // Caller records into the first page until its full. This would span multiple
-        // // DSP ticks.
-        // loop {
-        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+        // Caller records into the first page until its full. This would span multiple
+        // DSP ticks.
+        loop {
+            manager.process_configuration_updates(&mut config_consumer);
 
-        //     if caller.is_waiting_for_page() {
-        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
-        //         if acquired {
-        //             caller.start_loading_next_page(&mut load_request_producer);
-        //         }
-        //     }
+            // if caller.is_waiting_for_page() {
+            //     let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
+            //     if acquired {
+            //         caller.start_loading_next_page(&mut load_request_producer);
+            //     }
+            // }
 
-        //     caller.process(&mut [0.0; 32]);
+            // caller.process(&mut [0.0; 32]);
 
-        //     if caller.has_full_page() {
-        //         caller.start_saving(&mut save_request_producer);
-        //         break;
-        //     }
-        // }
+            // if caller.has_full_page() {
+            //     caller.start_saving(&mut save_request_producer);
+            //     break;
+            // }
+        }
 
         // // SD manager
         // {
