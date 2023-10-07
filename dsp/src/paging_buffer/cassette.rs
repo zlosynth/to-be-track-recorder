@@ -16,7 +16,7 @@ impl Cassette {
 }
 
 /// Unique identificator of the given `Cassette`.
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub(crate) struct CassetteId {
     index: usize,
 }

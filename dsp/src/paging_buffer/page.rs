@@ -22,6 +22,7 @@ impl Page {
 }
 
 /// Used to request blank or loaded page from another coroutine.
+#[derive(Debug, PartialEq)]
 pub(crate) enum PageRequest {
     Load(PageId),
     Blank(PageId),

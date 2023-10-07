@@ -4,18 +4,18 @@ use super::page::{Page, PageId};
 
 /// Memory pool that could be used as a global singleton to avoid copying
 /// of `Page` blobs.
-struct Pool {
+pub(crate) struct Pool {
     store: [Option<Page>; 4],
 }
 
 impl Pool {
-    const fn new() -> Pool {
+    pub(crate) const fn new() -> Pool {
         Pool {
             store: [None, None, None, None],
         }
     }
 
-    fn new_page(&mut self, id: PageId) -> Handle {
+    pub(crate) fn new_page(&mut self, id: PageId) -> Handle {
         let free = self
             .store
             .iter()
@@ -57,6 +57,7 @@ impl Handle {
 
 #[cfg(test)]
 mod tests {
+    use crate::paging_buffer::cassette::CassetteId;
     use crate::paging_buffer::page::PageId;
 
     use super::*;
@@ -74,10 +75,10 @@ mod tests {
         static mut POOL: Pool = Pool::new();
         let pool = unsafe { &mut POOL };
 
-        let _handle_1 = pool.new_page(PageId::new(1, 2));
+        let _handle_1 = pool.new_page(PageId::new(CassetteId::new(1), 2));
         assert_eq!(pool.stored(), 1);
 
-        let _handle_2 = pool.new_page(PageId::new(1, 2));
+        let _handle_2 = pool.new_page(PageId::new(CassetteId::new(1), 2));
         assert_eq!(pool.stored(), 2);
     }
 
@@ -86,11 +87,11 @@ mod tests {
         static mut POOL: Pool = Pool::new();
         let pool = unsafe { &mut POOL };
 
-        let handle_1 = pool.new_page(PageId::new(1, 2));
-        assert_eq!(handle_1.page_ref().id(), PageId::new(1, 2));
+        let handle_1 = pool.new_page(PageId::new(CassetteId::new(1), 2));
+        assert_eq!(handle_1.page_ref().id(), PageId::new(CassetteId::new(1), 2));
 
-        let handle_2 = pool.new_page(PageId::new(1, 3));
-        assert_eq!(handle_2.page_ref().id(), PageId::new(1, 3));
+        let handle_2 = pool.new_page(PageId::new(CassetteId::new(1), 3));
+        assert_eq!(handle_2.page_ref().id(), PageId::new(CassetteId::new(1), 3));
     }
 
     #[test]
@@ -98,8 +99,8 @@ mod tests {
         static mut POOL: Pool = Pool::new();
         let pool = unsafe { &mut POOL };
 
-        let handle = pool.new_page(PageId::new(1, 2));
-        assert_eq!(handle.page_mut().id(), PageId::new(1, 2));
+        let handle = pool.new_page(PageId::new(CassetteId::new(1), 2));
+        assert_eq!(handle.page_mut().id(), PageId::new(CassetteId::new(1), 2));
     }
 
     #[test]
@@ -107,8 +108,8 @@ mod tests {
         static mut POOL: Pool = Pool::new();
         let pool = unsafe { &mut POOL };
 
-        let handle_1 = pool.new_page(PageId::new(1, 2));
-        let handle_2 = pool.new_page(PageId::new(1, 3));
+        let handle_1 = pool.new_page(PageId::new(CassetteId::new(1), 2));
+        let handle_2 = pool.new_page(PageId::new(CassetteId::new(1), 3));
 
         pool.drop_page(handle_2);
         assert_eq!(pool.stored(), 1);
@@ -123,7 +124,7 @@ mod tests {
         let pool = unsafe { &mut POOL };
 
         loop {
-            let _handle = pool.new_page(PageId::new(1, 2));
+            let _handle = pool.new_page(PageId::new(CassetteId::new(1), 2));
         }
     }
 }

@@ -66,17 +66,18 @@ mod pool;
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
     fn full_flow_starting_from_nothing_with_long_recording() {
         use heapless::spsc::Queue;
 
-        use cassette::Cassette;
+        use cassette::{Cassette, CassetteId};
         use config::Config;
         use manager::Manager;
-        use page::{Page, PageRequest};
-        use pool::Handle;
+        use page::{Page, PageId, PageRequest};
+        use pool::{Handle, Pool};
 
         let mut save_request_queue: Queue<Handle, 4> = Queue::new();
         let (mut save_request_producer, mut save_request_consumer) = save_request_queue.split();
@@ -90,8 +91,10 @@ mod tests {
         let mut config_queue: Queue<Config, 4> = Queue::new();
         let (mut config_producer, mut config_consumer) = config_queue.split();
 
-        // Owned by SD manager.
+        // Owned by page manager.
         let mut sd: [Option<Page>; 4] = [None, None, None, None];
+        static mut POOL: Pool = Pool::new();
+        let pool = unsafe { &mut POOL };
 
         // Owned by the caller. Running as DSP loop.
         let mut manager = Manager::new();
@@ -102,20 +105,19 @@ mod tests {
         manager.set_cassette(Cassette::new(1));
         manager.start_loading_next_page(&mut load_request_producer);
 
-        // // SD Manager initializing the page and passing it to the caller.
-        // {
-        //     let request = load_request_consumer
-        //         .dequeue()
-        //         .expect("Load request must be received");
-        //     assert!(
-        //         matches!(request, PageRequest::Blank(HARDCODED_PARENT, 0)),
-        //         "The first request must be for a blank page"
-        //     );
-        //     load_response_producer
-        //         .enqueue(Page::new(HARDCODED_PARENT, 0))
-        //         .ok()
-        //         .unwrap();
-        // }
+        // Page manager initializing the page and passing it to the caller.
+        {
+            let request = load_request_consumer
+                .dequeue()
+                .expect("Must receive a load request");
+            assert_eq!(
+                request,
+                PageRequest::Blank(PageId::new(CassetteId::new(1), 0)),
+                "The first request must be for a blank page"
+            );
+            let handle = pool.new_page(PageId::new(CassetteId::new(1), 0));
+            load_response_producer.enqueue(handle).ok().unwrap();
+        }
 
         // // Control loop issues request for recording.
         // {
