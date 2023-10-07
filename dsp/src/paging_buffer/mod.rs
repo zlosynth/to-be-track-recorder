@@ -57,4 +57,5 @@
 //! 2. The caller takes page from the buffer, clones it for save queue, clones it for
 //!    its own cache and passes it back to the buffer.
 
+mod page;
 mod track;
