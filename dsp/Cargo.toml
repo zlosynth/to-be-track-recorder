@@ -1,6 +1,6 @@
 [package]
 name = "placeholder-dsp"
-version = "0.1.0"
+version = "0.1.0" # hack/release.sh
 edition = "2021"
 authors = ["Petr Horáček <petr@zlosynth.com>"]
 license = "GPL-3.0-or-later"
