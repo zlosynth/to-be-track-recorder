@@ -1,0 +1,41 @@
+[package]
+name = "placeholder-firmware"
+version = "0.1.0" # hack/release.sh
+edition = "2021"
+authors = ["Petr Horáček <petr@zlosynth.com>"]
+license = "GPL-3.0-or-later"
+publish = false
+
+[lib]
+harness = false
+
+[dependencies]
+cortex-m = { version = "0.7" }
+cortex-m-rtic = "1"
+defmt = "0.3"
+defmt-rtt = "0.4"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+stm32h7xx-hal = { version = "0.14", features = [
+  "stm32h750v",
+  "rt",
+  "revision_v",
+  "defmt",
+] }
+daisy = { version = "0.8", features = ["patch_sm"] }
+systick-monotonic = "1"
+
+[profile.dev]
+codegen-units = 1 # better optimizations
+debug = true      # symbols are nice and they don't increase the size on flash
+lto = true        # better optimizations
+opt-level = 3     # test with the same optimization as released code
+
+[profile.release]
+codegen-units = 1
+debug = true
+lto = true
+opt-level = 3
+
+[[bin]]
+name = "firmware"
+harness = false
