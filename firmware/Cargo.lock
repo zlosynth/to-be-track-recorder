@@ -332,6 +332,7 @@ dependencies = [
  "daisy",
  "defmt",
  "defmt-rtt",
+ "fugit",
  "panic-probe",
  "stm32h7xx-hal",
  "systick-monotonic",
