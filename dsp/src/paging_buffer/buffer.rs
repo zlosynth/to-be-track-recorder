@@ -52,6 +52,9 @@ impl Buffer {
     pub(crate) fn process(&mut self, block: &[f32]) {
         if self.has_page() {
             self.pointer += block.len();
+            if self.pointer > self.cassette.length {
+                self.cassette.length = self.pointer;
+            }
             if self.recording {
                 self.active_page.as_ref().unwrap().page_mut().mark_dirty();
             }

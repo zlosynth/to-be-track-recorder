@@ -67,6 +67,8 @@ mod pool;
 #[cfg(test)]
 mod tests {
 
+    use heapless::spsc::{Consumer, Producer};
+
     use super::*;
 
     #[test]
@@ -110,18 +112,12 @@ mod tests {
         manager.start_loading_next_page(&mut load_request_producer);
 
         // Page manager initializing the page and passing it to the caller.
-        {
-            let request = load_request_consumer
-                .dequeue()
-                .expect("Must receive a load request");
-            assert_eq!(
-                request,
-                PageRequest::Blank(PageId::new(CassetteId::new(1), 0)),
-                "The first request must be for a blank page"
-            );
-            let handle = pool.new_page(PageId::new(CassetteId::new(1), 0));
-            load_response_producer.enqueue(handle).ok().unwrap();
-        }
+        assert_and_handle_page_request(
+            Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 0))),
+            pool,
+            &mut load_request_consumer,
+            &mut load_response_producer,
+        );
 
         // Control loop issues request for recording.
         {
@@ -156,16 +152,12 @@ mod tests {
 
         // Page manager
         {
-            let load_request = load_request_consumer
-                .dequeue()
-                .expect("Must receive a load request");
-            assert_eq!(
-                load_request,
-                PageRequest::Blank(PageId::new(CassetteId::new(1), 1)),
-                "The request must be for a second blank page"
+            assert_and_handle_page_request(
+                Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 1))),
+                pool,
+                &mut load_request_consumer,
+                &mut load_response_producer,
             );
-            let handle = pool.new_page(PageId::new(CassetteId::new(1), 1));
-            load_response_producer.enqueue(handle).ok().unwrap();
 
             let save_request_page = save_request_first_page_consumer
                 .dequeue()
@@ -204,16 +196,12 @@ mod tests {
 
         // Page manager
         {
-            let load_request = load_request_consumer
-                .dequeue()
-                .expect("Must receive a load request");
-            assert_eq!(
-                load_request,
-                PageRequest::Blank(PageId::new(CassetteId::new(1), 2)),
-                "The first request must be for a second blank page"
+            assert_and_handle_page_request(
+                Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 2))),
+                pool,
+                &mut load_request_consumer,
+                &mut load_response_producer,
             );
-            let handle = pool.new_page(PageId::new(CassetteId::new(1), 2));
-            load_response_producer.enqueue(handle).ok().unwrap();
 
             let save_request_handle = save_request_consumer
                 .dequeue()
@@ -251,7 +239,18 @@ mod tests {
 
         // Page manager
         {
-            // NOTE: There is no load request since the first page is stored in manager's cache.
+            assert_and_handle_page_request(
+                Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 3))),
+                pool,
+                &mut load_request_consumer,
+                &mut load_response_producer,
+            );
+            assert_and_handle_page_request(
+                None,
+                pool,
+                &mut load_request_consumer,
+                &mut load_response_producer,
+            );
 
             let save_request_handle = save_request_consumer
                 .dequeue()
@@ -289,28 +288,12 @@ mod tests {
 
         // Page manager
         {
-            let load_request = load_request_consumer
-                .dequeue()
-                .expect("Must receive a load request");
-            assert_eq!(
-                load_request,
-                PageRequest::Blank(PageId::new(CassetteId::new(1), 3)),
-                "Expects load request for the fourth page"
+            assert_and_handle_page_request(
+                Some(PageRequest::Load(PageId::new(CassetteId::new(1), 1))),
+                pool,
+                &mut load_request_consumer,
+                &mut load_response_producer,
             );
-            let handle = pool.new_page(PageId::new(CassetteId::new(1), 3));
-            load_response_producer.enqueue(handle).ok().unwrap();
-
-            let load_request = load_request_consumer
-                .dequeue()
-                .expect("Must receive a load request");
-            assert_eq!(
-                load_request,
-                PageRequest::Blank(PageId::new(CassetteId::new(1), 1)),
-                "Expects load request for the second page"
-            );
-            let handle = pool.new_page(PageId::new(CassetteId::new(1), 1));
-            // TODO: Load content from SD
-            load_response_producer.enqueue(handle).ok().unwrap();
 
             let save_request_page = save_request_first_page_consumer
                 .dequeue()
@@ -357,22 +340,36 @@ mod tests {
 
         // Page manager
         {
-            let load_request = load_request_consumer
-                .dequeue()
-                .expect("Must receive a load request");
-            assert_eq!(
-                load_request,
-                PageRequest::Blank(PageId::new(CassetteId::new(1), 2)),
-                "Expects load request for the second page"
+            assert_and_handle_page_request(
+                Some(PageRequest::Load(PageId::new(CassetteId::new(1), 2))),
+                pool,
+                &mut load_request_consumer,
+                &mut load_response_producer,
             );
-            let handle = pool.new_page(PageId::new(CassetteId::new(1), 2));
-            // TODO: Load content from SD
-            load_response_producer.enqueue(handle).ok().unwrap();
 
             assert!(
                 save_request_consumer.dequeue().is_none(),
                 "No saves are expected"
             );
+        }
+    }
+
+    fn assert_and_handle_page_request(
+        expected_load_request: Option<page::PageRequest>,
+        pool: &mut pool::Pool,
+        load_request_consumer: &mut Consumer<'_, page::PageRequest, 4>,
+        load_response_producer: &mut Producer<'_, pool::Handle, 4>,
+    ) {
+        let received_load_request = load_request_consumer.dequeue();
+
+        if let Some(expected_load_request) = expected_load_request {
+            let request = received_load_request.expect("No page request was received");
+            assert_eq!(request, expected_load_request, "Unexpected page request");
+
+            let handle = pool.new_page(expected_load_request.page_id());
+            load_response_producer.enqueue(handle).ok().unwrap();
+        } else {
+            assert!(received_load_request.is_none(), "Unexpected page request");
         }
     }
 }
