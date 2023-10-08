@@ -137,7 +137,7 @@ mod tests {
                 }
             }
 
-            manager.process(&mut [0.0; 32]);
+            manager.process(&mut [0.1; 32]);
 
             if manager.has_full_page() {
                 manager.start_saving(
@@ -164,7 +164,7 @@ mod tests {
                 &mut save_request_first_page_consumer,
             );
             assert_and_handle_handle_save_request(None, &mut sd, pool, &mut save_request_consumer);
-            // TODO: Check contents
+            assert_recorded(0, 0.1, &mut sd);
         }
 
         // Caller records into the second page until its full. This would span multiple
@@ -179,7 +179,7 @@ mod tests {
                 }
             }
 
-            manager.process(&mut [0.0; 32]);
+            manager.process(&mut [0.2; 32]);
 
             if manager.has_full_page() {
                 manager.start_saving(
@@ -211,7 +211,8 @@ mod tests {
                 pool,
                 &mut save_request_consumer,
             );
-            // TODO: Check contents
+            assert_recorded(0, 0.1, &mut sd);
+            assert_recorded(1, 0.2, &mut sd);
         }
 
         // Caller records into the third page, but is interrupted with a position reset.
@@ -226,7 +227,7 @@ mod tests {
                     }
                 }
 
-                manager.process(&mut [0.0; 32]);
+                manager.process(&mut [0.3; 32]);
             }
 
             manager.start_saving(
@@ -262,7 +263,9 @@ mod tests {
                 pool,
                 &mut save_request_consumer,
             );
-            // TODO: Check contents
+            assert_recorded(0, 0.1, &mut sd);
+            assert_recorded(1, 0.2, &mut sd);
+            assert_recorded(2, 0.3, &mut sd);
         }
 
         // Caller records into the first page again.
@@ -276,7 +279,7 @@ mod tests {
                 }
             }
 
-            manager.process(&mut [0.0; 32]);
+            manager.process(&mut [0.4; 32]);
 
             if manager.has_full_page() {
                 manager.start_saving(
@@ -302,7 +305,9 @@ mod tests {
                 &mut save_request_first_page_consumer,
             );
             assert_and_handle_handle_save_request(None, &mut sd, pool, &mut save_request_consumer);
-            // TODO: Check contents
+            assert_recorded(0, 0.4, &mut sd);
+            assert_recorded(1, 0.2, &mut sd);
+            assert_recorded(2, 0.3, &mut sd);
         }
 
         // Control loop issues request for recording.
@@ -325,7 +330,7 @@ mod tests {
                 }
             }
 
-            manager.process(&mut [0.0; 32]);
+            manager.process(&mut [0.5; 32]);
 
             if manager.has_full_page() {
                 manager.start_saving(
@@ -351,7 +356,18 @@ mod tests {
                 &mut save_request_first_page_consumer,
             );
             assert_and_handle_handle_save_request(None, &mut sd, pool, &mut save_request_consumer);
+            assert_recorded(0, 0.4, &mut sd);
+            assert_recorded(1, 0.2, &mut sd);
+            assert_recorded(2, 0.3, &mut sd);
         }
+    }
+
+    fn assert_recorded(page_index: usize, value: f32, sd: &mut [Option<page::Page>; 4]) {
+        let first_sample = sd[page_index].as_ref().unwrap().data[0];
+        assert_eq!(
+            first_sample, value,
+            "First sample of the given page has an unexpected value"
+        );
     }
 
     fn assert_and_handle_handle_save_request(

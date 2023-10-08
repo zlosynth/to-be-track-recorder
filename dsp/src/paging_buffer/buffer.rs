@@ -51,7 +51,11 @@ impl Buffer {
 
     pub(crate) fn process(&mut self, block: &[f32]) {
         if self.has_page() {
-            self.pointer += block.len();
+            for x in block.iter() {
+                let relative_index = self.pointer % 512; // TODO Use constant
+                self.active_page.as_mut().unwrap().page_mut().data[relative_index] = *x;
+                self.pointer += 1;
+            }
             if self.pointer > self.cassette.length {
                 self.cassette.length = self.pointer;
             }

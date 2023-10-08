@@ -7,11 +7,17 @@ use super::cassette::CassetteId;
 pub(crate) struct Page {
     id: PageId,
     dirty: bool,
+    // TODO: Use constants
+    pub data: [f32; 512],
 }
 
 impl Page {
     pub(crate) fn new(id: PageId) -> Self {
-        Self { id, dirty: false }
+        Self {
+            id,
+            dirty: false,
+            data: [0.0; 512],
+        }
     }
 
     pub(crate) fn id(&self) -> PageId {
