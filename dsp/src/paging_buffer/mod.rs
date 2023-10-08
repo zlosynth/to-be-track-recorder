@@ -112,7 +112,7 @@ mod tests {
         manager.start_loading_next_page(&mut load_request_producer);
 
         // Page manager initializing the page and passing it to the caller.
-        assert_and_handle_page_request(
+        assert_and_handle_load_page_request(
             Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 0))),
             pool,
             &mut load_request_consumer,
@@ -120,12 +120,10 @@ mod tests {
         );
 
         // Control loop issues request for recording.
-        {
-            config_producer
-                .enqueue(Config { recording: true })
-                .ok()
-                .unwrap();
-        }
+        config_producer
+            .enqueue(Config { recording: true })
+            .ok()
+            .unwrap();
 
         // Caller records into the first page until its full. This would span multiple
         // DSP ticks.
@@ -152,22 +150,18 @@ mod tests {
 
         // Page manager
         {
-            assert_and_handle_page_request(
+            assert_and_handle_load_page_request(
                 Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 1))),
                 pool,
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-
-            let save_request_page = save_request_first_page_consumer
-                .dequeue()
-                .expect("Must receive a save request");
-            assert_eq!(
-                save_request_page.id(),
-                PageId::new(CassetteId::new(1), 0),
-                "The save request must be for the first page"
+            assert_and_handle_first_page_save_request(
+                Some(PageId::new(CassetteId::new(1), 0)),
+                &mut sd,
+                &mut save_request_first_page_consumer,
             );
-            sd[0] = Some(save_request_page);
+            assert_and_handle_handle_save_request(None, &mut sd, pool, &mut save_request_consumer);
             // TODO: Check contents
         }
 
@@ -196,22 +190,23 @@ mod tests {
 
         // Page manager
         {
-            assert_and_handle_page_request(
+            assert_and_handle_load_page_request(
                 Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 2))),
                 pool,
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-
-            let save_request_handle = save_request_consumer
-                .dequeue()
-                .expect("Must receive a save request");
-            assert_eq!(
-                save_request_handle.page_ref().id(),
-                PageId::new(CassetteId::new(1), 1),
-                "The save request must be for the second page"
+            assert_and_handle_first_page_save_request(
+                None,
+                &mut sd,
+                &mut save_request_first_page_consumer,
             );
-            sd[1] = Some(pool.take_page(save_request_handle));
+            assert_and_handle_handle_save_request(
+                Some(PageId::new(CassetteId::new(1), 1)),
+                &mut sd,
+                pool,
+                &mut save_request_consumer,
+            );
             // TODO: Check contents
         }
 
@@ -239,28 +234,29 @@ mod tests {
 
         // Page manager
         {
-            assert_and_handle_page_request(
+            assert_and_handle_load_page_request(
                 Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 3))),
                 pool,
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-            assert_and_handle_page_request(
+            assert_and_handle_first_page_save_request(
+                None,
+                &mut sd,
+                &mut save_request_first_page_consumer,
+            );
+            assert_and_handle_load_page_request(
                 None,
                 pool,
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-
-            let save_request_handle = save_request_consumer
-                .dequeue()
-                .expect("Must receive a save request");
-            assert_eq!(
-                save_request_handle.page_ref().id(),
-                PageId::new(CassetteId::new(1), 2),
-                "The save request must be for the third page"
+            assert_and_handle_handle_save_request(
+                Some(PageId::new(CassetteId::new(1), 2)),
+                &mut sd,
+                pool,
+                &mut save_request_consumer,
             );
-            sd[2] = Some(pool.take_page(save_request_handle));
             // TODO: Check contents
         }
 
@@ -288,22 +284,18 @@ mod tests {
 
         // Page manager
         {
-            assert_and_handle_page_request(
+            assert_and_handle_load_page_request(
                 Some(PageRequest::Load(PageId::new(CassetteId::new(1), 1))),
                 pool,
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-
-            let save_request_page = save_request_first_page_consumer
-                .dequeue()
-                .expect("Must receive a save request");
-            assert_eq!(
-                save_request_page.id(),
-                PageId::new(CassetteId::new(1), 0),
-                "The save request must be for the first page"
+            assert_and_handle_first_page_save_request(
+                Some(PageId::new(CassetteId::new(1), 0)),
+                &mut sd,
+                &mut save_request_first_page_consumer,
             );
-            sd[0] = Some(save_request_page);
+            assert_and_handle_handle_save_request(None, &mut sd, pool, &mut save_request_consumer);
             // TODO: Check contents
         }
 
@@ -340,36 +332,84 @@ mod tests {
 
         // Page manager
         {
-            assert_and_handle_page_request(
+            assert_and_handle_load_page_request(
                 Some(PageRequest::Load(PageId::new(CassetteId::new(1), 2))),
                 pool,
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
+            assert_and_handle_first_page_save_request(
+                None,
+                &mut sd,
+                &mut save_request_first_page_consumer,
+            );
+            assert_and_handle_handle_save_request(None, &mut sd, pool, &mut save_request_consumer);
+        }
+    }
 
+    fn assert_and_handle_handle_save_request(
+        expected_handle_save_request: Option<page::PageId>,
+        sd: &mut [Option<page::Page>; 4],
+        pool: &mut pool::Pool,
+        save_request_consumer: &mut Consumer<pool::Handle, 4>,
+    ) {
+        let received_handle_save_request = save_request_consumer.dequeue();
+        if let Some(expected_handle_save_request) = expected_handle_save_request {
+            let handle = received_handle_save_request.expect("No save request was received");
+            assert_eq!(
+                handle.page_ref().id(),
+                expected_handle_save_request,
+                "Unexpectde handle save request"
+            );
+            let index = handle.page_ref().index();
+            sd[index] = Some(pool.take_page(handle));
+        } else {
             assert!(
-                save_request_consumer.dequeue().is_none(),
-                "No saves are expected"
+                received_handle_save_request.is_none(),
+                "Unexpected handle save request"
             );
         }
     }
 
-    fn assert_and_handle_page_request(
+    fn assert_and_handle_first_page_save_request(
+        expected_first_page_save_request: Option<page::PageId>,
+        sd: &mut [Option<page::Page>; 4],
+        save_request_first_page_consumer: &mut Consumer<page::Page, 4>,
+    ) {
+        let received_first_page_save_request = save_request_first_page_consumer.dequeue();
+        if let Some(expected_first_page_save_request) = expected_first_page_save_request {
+            let page = received_first_page_save_request.expect("No page save request was received");
+            assert_eq!(
+                page.id(),
+                expected_first_page_save_request,
+                "Unexpected page save request"
+            );
+            let index = page.index();
+            sd[index] = Some(page);
+        } else {
+            assert!(
+                received_first_page_save_request.is_none(),
+                "Unexpected page save request"
+            );
+        }
+    }
+
+    fn assert_and_handle_load_page_request(
         expected_load_request: Option<page::PageRequest>,
         pool: &mut pool::Pool,
-        load_request_consumer: &mut Consumer<'_, page::PageRequest, 4>,
-        load_response_producer: &mut Producer<'_, pool::Handle, 4>,
+        load_request_consumer: &mut Consumer<page::PageRequest, 4>,
+        load_response_producer: &mut Producer<pool::Handle, 4>,
     ) {
         let received_load_request = load_request_consumer.dequeue();
 
         if let Some(expected_load_request) = expected_load_request {
-            let request = received_load_request.expect("No page request was received");
-            assert_eq!(request, expected_load_request, "Unexpected page request");
+            let request = received_load_request.expect("No load request was received");
+            assert_eq!(request, expected_load_request, "Unexpected load request");
 
             let handle = pool.new_page(expected_load_request.page_id());
             load_response_producer.enqueue(handle).ok().unwrap();
         } else {
-            assert!(received_load_request.is_none(), "Unexpected page request");
+            assert!(received_load_request.is_none(), "Unexpected load request");
         }
     }
 }
