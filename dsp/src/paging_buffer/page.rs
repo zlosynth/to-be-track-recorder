@@ -3,13 +3,15 @@
 use super::cassette::CassetteId;
 
 /// Blob of data containing a part of audio sample.
+#[derive(Clone)]
 pub(crate) struct Page {
     id: PageId,
+    dirty: bool,
 }
 
 impl Page {
     pub(crate) fn new(id: PageId) -> Self {
-        Self { id }
+        Self { id, dirty: false }
     }
 
     pub(crate) fn id(&self) -> PageId {
@@ -18,6 +20,14 @@ impl Page {
 
     pub(crate) fn index(&self) -> usize {
         self.id.page_index
+    }
+
+    pub(crate) fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    pub(crate) fn is_dirty(&self) -> bool {
+        self.dirty
     }
 }
 
@@ -28,10 +38,25 @@ pub(crate) enum PageRequest {
     Blank(PageId),
 }
 
+impl PageRequest {
+    pub(crate) fn page_id(&self) -> PageId {
+        match self {
+            PageRequest::Load(page_id) => *page_id,
+            PageRequest::Blank(page_id) => *page_id,
+        }
+    }
+}
+
 /// Unique identificator of a page.
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub(crate) struct PageId {
     page_index: usize,
+}
+
+impl PageId {
+    pub(crate) fn page_index(&self) -> usize {
+        self.page_index
+    }
 }
 
 impl PageId {

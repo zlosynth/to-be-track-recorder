@@ -82,6 +82,10 @@ mod tests {
         let mut save_request_queue: Queue<Handle, 4> = Queue::new();
         let (mut save_request_producer, mut save_request_consumer) = save_request_queue.split();
 
+        let mut save_request_first_page_queue: Queue<Page, 4> = Queue::new();
+        let (mut save_request_first_page_producer, mut save_request_first_page_consumer) =
+            save_request_first_page_queue.split();
+
         let mut load_request_queue: Queue<PageRequest, 4> = Queue::new();
         let (mut load_request_producer, mut load_request_consumer) = load_request_queue.split();
 
@@ -132,150 +136,243 @@ mod tests {
         loop {
             manager.process_configuration_updates(&mut config_consumer);
 
-            // if caller.is_waiting_for_page() {
-            //     let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
-            //     if acquired {
-            //         caller.start_loading_next_page(&mut load_request_producer);
-            //     }
-            // }
+            if manager.is_waiting_for_page() {
+                let acquired = manager.try_fetching_next_page(&mut load_response_consumer);
+                if acquired {
+                    manager.start_loading_next_page(&mut load_request_producer);
+                }
+            }
 
-            // caller.process(&mut [0.0; 32]);
+            manager.process(&mut [0.0; 32]);
 
-            // if caller.has_full_page() {
-            //     caller.start_saving(&mut save_request_producer);
-            //     break;
-            // }
+            if manager.has_full_page() {
+                manager.start_saving(
+                    &mut save_request_producer,
+                    &mut save_request_first_page_producer,
+                );
+                break;
+            }
         }
 
-        // // SD manager
-        // {
-        //     let _request = load_request_consumer.dequeue().unwrap();
-        //     load_response_producer
-        //         .enqueue(Page::new(HARDCODED_PARENT, 1))
-        //         .ok()
-        //         .unwrap();
+        // Page manager
+        {
+            let load_request = load_request_consumer
+                .dequeue()
+                .expect("Must receive a load request");
+            assert_eq!(
+                load_request,
+                PageRequest::Blank(PageId::new(CassetteId::new(1), 1)),
+                "The request must be for a second blank page"
+            );
+            let handle = pool.new_page(PageId::new(CassetteId::new(1), 1));
+            load_response_producer.enqueue(handle).ok().unwrap();
 
-        //     let page_1 = save_request_consumer.dequeue().unwrap();
-        //     sd[0] = Some(page_1);
-        // }
+            let save_request_page = save_request_first_page_consumer
+                .dequeue()
+                .expect("Must receive a save request");
+            assert_eq!(
+                save_request_page.id(),
+                PageId::new(CassetteId::new(1), 0),
+                "The save request must be for the first page"
+            );
+            sd[0] = Some(save_request_page);
+            // TODO: Check contents
+        }
 
-        // // Caller records into the second page until its full. This would span multiple
-        // // DSP ticks.
-        // loop {
-        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+        // Caller records into the second page until its full. This would span multiple
+        // DSP ticks.
+        loop {
+            manager.process_configuration_updates(&mut config_consumer);
 
-        //     if caller.is_waiting_for_page() {
-        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
-        //         if acquired {
-        //             caller.start_loading_next_page(&mut load_request_producer);
-        //         }
-        //     }
+            if manager.is_waiting_for_page() {
+                let acquired = manager.try_fetching_next_page(&mut load_response_consumer);
+                if acquired {
+                    manager.start_loading_next_page(&mut load_request_producer);
+                }
+            }
 
-        //     caller.process(&mut [0.0; 32]);
+            manager.process(&mut [0.0; 32]);
 
-        //     if caller.has_full_page() {
-        //         caller.start_saving(&mut save_request_producer);
-        //         break;
-        //     }
-        // }
+            if manager.has_full_page() {
+                manager.start_saving(
+                    &mut save_request_producer,
+                    &mut save_request_first_page_producer,
+                );
+                break;
+            }
+        }
 
-        // // SD manager
-        // {
-        //     let _request = load_request_consumer.dequeue().unwrap();
-        //     load_response_producer
-        //         .enqueue(Page::new(HARDCODED_PARENT, 2))
-        //         .ok()
-        //         .unwrap();
+        // Page manager
+        {
+            let load_request = load_request_consumer
+                .dequeue()
+                .expect("Must receive a load request");
+            assert_eq!(
+                load_request,
+                PageRequest::Blank(PageId::new(CassetteId::new(1), 2)),
+                "The first request must be for a second blank page"
+            );
+            let handle = pool.new_page(PageId::new(CassetteId::new(1), 2));
+            load_response_producer.enqueue(handle).ok().unwrap();
 
-        //     let page_2 = save_request_consumer.dequeue().unwrap();
-        //     sd[1] = Some(page_2);
-        // }
+            let save_request_handle = save_request_consumer
+                .dequeue()
+                .expect("Must receive a save request");
+            assert_eq!(
+                save_request_handle.page_ref().id(),
+                PageId::new(CassetteId::new(1), 1),
+                "The save request must be for the second page"
+            );
+            sd[1] = Some(pool.take_page(save_request_handle));
+            // TODO: Check contents
+        }
 
-        // // Caller records into the third page, but is interrupted with a position reset.
-        // {
-        //     for _ in 0..3 {
-        //         caller.process_configuration_updates(&mut dsp_config_consumer);
+        // Caller records into the third page, but is interrupted with a position reset.
+        {
+            for _ in 0..3 {
+                manager.process_configuration_updates(&mut config_consumer);
 
-        //         if caller.is_waiting_for_page() {
-        //             let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
-        //             if acquired {
-        //                 caller.start_loading_next_page(&mut load_request_producer);
-        //             }
-        //         }
+                if manager.is_waiting_for_page() {
+                    let acquired = manager.try_fetching_next_page(&mut load_response_consumer);
+                    if acquired {
+                        manager.start_loading_next_page(&mut load_request_producer);
+                    }
+                }
 
-        //         caller.process(&mut [0.0; 32]);
-        //     }
+                manager.process(&mut [0.0; 32]);
+            }
 
-        //     caller.start_saving(&mut save_request_producer);
-        //     caller.reset_position();
-        // }
+            manager.start_saving(
+                &mut save_request_producer,
+                &mut save_request_first_page_producer,
+            );
+            manager.reset_position();
+        }
 
-        // // SD manager
-        // {
-        //     let _request = load_request_consumer.dequeue().unwrap();
-        //     load_response_producer
-        //         .enqueue(Page::new(HARDCODED_PARENT, 1))
-        //         .ok()
-        //         .unwrap();
+        // Page manager
+        {
+            // NOTE: There is no load request since the first page is stored in manager's cache.
 
-        //     let page_3 = save_request_consumer.dequeue().unwrap();
-        //     sd[2] = Some(page_3);
-        // }
+            let save_request_handle = save_request_consumer
+                .dequeue()
+                .expect("Must receive a save request");
+            assert_eq!(
+                save_request_handle.page_ref().id(),
+                PageId::new(CassetteId::new(1), 2),
+                "The save request must be for the third page"
+            );
+            sd[2] = Some(pool.take_page(save_request_handle));
+            // TODO: Check contents
+        }
 
-        // // Caller records into the first page again
-        // loop {
-        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+        // Caller records into the first page again
+        loop {
+            manager.process_configuration_updates(&mut config_consumer);
 
-        //     if caller.is_waiting_for_page() {
-        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
-        //         if acquired {
-        //             caller.start_loading_next_page(&mut load_request_producer);
-        //         }
-        //     }
+            if manager.is_waiting_for_page() {
+                let acquired = manager.try_fetching_next_page(&mut load_response_consumer);
+                if acquired {
+                    manager.start_loading_next_page(&mut load_request_producer);
+                }
+            }
 
-        //     caller.process(&mut [0.0; 32]);
+            manager.process(&mut [0.0; 32]);
 
-        //     if caller.has_full_page() {
-        //         caller.start_saving(&mut save_request_producer);
-        //         break;
-        //     }
-        // }
+            if manager.has_full_page() {
+                manager.start_saving(
+                    &mut save_request_producer,
+                    &mut save_request_first_page_producer,
+                );
+                break;
+            }
+        }
 
-        // // SD manager stores the first page and returns next.
-        // {
-        //     let page_1 = save_request_consumer.dequeue().unwrap();
-        //     sd[0] = Some(page_1);
+        // Page manager
+        {
+            let load_request = load_request_consumer
+                .dequeue()
+                .expect("Must receive a load request");
+            assert_eq!(
+                load_request,
+                PageRequest::Blank(PageId::new(CassetteId::new(1), 3)),
+                "Expects load request for the fourth page"
+            );
+            let handle = pool.new_page(PageId::new(CassetteId::new(1), 3));
+            load_response_producer.enqueue(handle).ok().unwrap();
 
-        //     let _request = load_request_consumer.dequeue().unwrap();
-        //     load_response_producer
-        //         .enqueue(sd[1].clone().unwrap())
-        //         .ok()
-        //         .unwrap();
-        // }
+            let load_request = load_request_consumer
+                .dequeue()
+                .expect("Must receive a load request");
+            assert_eq!(
+                load_request,
+                PageRequest::Blank(PageId::new(CassetteId::new(1), 1)),
+                "Expects load request for the second page"
+            );
+            let handle = pool.new_page(PageId::new(CassetteId::new(1), 1));
+            // TODO: Load content from SD
+            load_response_producer.enqueue(handle).ok().unwrap();
 
-        // // Control loop issues request for recording.
-        // {
-        //     dsp_config_producer.enqueue(DSPConfig::new()).ok().unwrap();
-        // }
+            let save_request_page = save_request_first_page_consumer
+                .dequeue()
+                .expect("Must receive a save request");
+            assert_eq!(
+                save_request_page.id(),
+                PageId::new(CassetteId::new(1), 0),
+                "The save request must be for the first page"
+            );
+            sd[0] = Some(save_request_page);
+            // TODO: Check contents
+        }
 
-        // // Caller records into the first page until its full. This would span multiple
-        // // DSP ticks.
-        // loop {
-        //     caller.process_configuration_updates(&mut dsp_config_consumer);
+        // Control loop issues request for recording.
+        {
+            config_producer
+                .enqueue(Config { recording: false })
+                .ok()
+                .unwrap();
+        }
 
-        //     if caller.is_waiting_for_page() {
-        //         let acquired = caller.try_fetching_next_page(&mut load_response_consumer);
-        //         if acquired {
-        //             caller.start_loading_next_page(&mut load_request_producer);
-        //         }
-        //     }
+        // Caller records into the first page until its full. This would span multiple
+        // DSP ticks.
+        loop {
+            manager.process_configuration_updates(&mut config_consumer);
 
-        //     caller.process(&mut [0.0; 32]);
+            if manager.is_waiting_for_page() {
+                let acquired = manager.try_fetching_next_page(&mut load_response_consumer);
+                if acquired {
+                    manager.start_loading_next_page(&mut load_request_producer);
+                }
+            }
 
-        //     if caller.has_full_page() {
-        //         caller.start_saving(&mut save_request_producer);
-        //         break;
-        //     }
-        // }
+            manager.process(&mut [0.0; 32]);
+
+            if manager.has_full_page() {
+                manager.start_saving(
+                    &mut save_request_producer,
+                    &mut save_request_first_page_producer,
+                );
+                break;
+            }
+        }
+
+        // Page manager
+        {
+            let load_request = load_request_consumer
+                .dequeue()
+                .expect("Must receive a load request");
+            assert_eq!(
+                load_request,
+                PageRequest::Blank(PageId::new(CassetteId::new(1), 2)),
+                "Expects load request for the second page"
+            );
+            let handle = pool.new_page(PageId::new(CassetteId::new(1), 2));
+            // TODO: Load content from SD
+            load_response_producer.enqueue(handle).ok().unwrap();
+
+            assert!(
+                save_request_consumer.dequeue().is_none(),
+                "No saves are expected"
+            );
+        }
     }
 }

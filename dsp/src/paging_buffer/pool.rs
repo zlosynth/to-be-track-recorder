@@ -30,12 +30,17 @@ impl Pool {
         }
     }
 
+    // TODO: Replace it with take_page
     fn drop_page(&mut self, handle: Handle) {
         self.store[handle.pool_index] = None;
     }
 
     fn stored(&self) -> usize {
         self.store.iter().filter(|x| x.is_some()).count()
+    }
+
+    pub(crate) fn take_page(&mut self, handle: Handle) -> Page {
+        self.store[handle.pool_index].take().unwrap()
     }
 }
 
@@ -50,8 +55,12 @@ impl Handle {
         unsafe { &*self.address }.as_ref().unwrap()
     }
 
-    fn page_mut(&self) -> &mut Page {
+    pub(crate) fn page_mut(&self) -> &mut Page {
         unsafe { &mut *self.address }.as_mut().unwrap()
+    }
+
+    pub(crate) fn page_clone(&self) -> Page {
+        unsafe { &mut *self.address }.as_ref().cloned().unwrap()
     }
 }
 
