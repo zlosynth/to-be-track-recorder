@@ -148,7 +148,9 @@ mod tests {
             }
         }
 
-        // Page manager
+        // Page manager answers request for loading of the next page and stores
+        // the fully populated first page. The first page is passed by value since the
+        // manager keeps the original for caching purposes.
         {
             assert_and_handle_load_page_request(
                 Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 1))),
@@ -156,7 +158,7 @@ mod tests {
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-            assert_and_handle_first_page_save_request(
+            assert_and_handle_page_save_request(
                 Some(PageId::new(CassetteId::new(1), 0)),
                 &mut sd,
                 &mut save_request_first_page_consumer,
@@ -188,7 +190,9 @@ mod tests {
             }
         }
 
-        // Page manager
+        // Page manager responds to the request for the next blank page. It also saves
+        // the fully populated page. This time the page is passed by reference to the
+        // shared pool.
         {
             assert_and_handle_load_page_request(
                 Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 2))),
@@ -196,7 +200,7 @@ mod tests {
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-            assert_and_handle_first_page_save_request(
+            assert_and_handle_page_save_request(
                 None,
                 &mut sd,
                 &mut save_request_first_page_consumer,
@@ -232,7 +236,8 @@ mod tests {
             manager.reset_position();
         }
 
-        // Page manager
+        // Page manager first handles a blank page request. This was sent from the manager
+        // before it was reset. Then it saves the partially populated last page.
         {
             assert_and_handle_load_page_request(
                 Some(PageRequest::Blank(PageId::new(CassetteId::new(1), 3))),
@@ -240,7 +245,7 @@ mod tests {
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-            assert_and_handle_first_page_save_request(
+            assert_and_handle_page_save_request(
                 None,
                 &mut sd,
                 &mut save_request_first_page_consumer,
@@ -260,7 +265,7 @@ mod tests {
             // TODO: Check contents
         }
 
-        // Caller records into the first page again
+        // Caller records into the first page again.
         loop {
             manager.process_configuration_updates(&mut config_consumer);
 
@@ -282,7 +287,8 @@ mod tests {
             }
         }
 
-        // Page manager
+        // Page manager handles the load request for the previously stored recond page.
+        // It also saves the new version of the first page.
         {
             assert_and_handle_load_page_request(
                 Some(PageRequest::Load(PageId::new(CassetteId::new(1), 1))),
@@ -290,7 +296,7 @@ mod tests {
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-            assert_and_handle_first_page_save_request(
+            assert_and_handle_page_save_request(
                 Some(PageId::new(CassetteId::new(1), 0)),
                 &mut sd,
                 &mut save_request_first_page_consumer,
@@ -307,7 +313,7 @@ mod tests {
                 .unwrap();
         }
 
-        // Caller records into the first page until its full. This would span multiple
+        // Caller records into the first page until its fully processed. This would span multiple
         // DSP ticks.
         loop {
             manager.process_configuration_updates(&mut config_consumer);
@@ -330,7 +336,8 @@ mod tests {
             }
         }
 
-        // Page manager
+        // Page manager handles request for loading of the next previously saved page.
+        // No save request is expected since recording was disabled.
         {
             assert_and_handle_load_page_request(
                 Some(PageRequest::Load(PageId::new(CassetteId::new(1), 2))),
@@ -338,7 +345,7 @@ mod tests {
                 &mut load_request_consumer,
                 &mut load_response_producer,
             );
-            assert_and_handle_first_page_save_request(
+            assert_and_handle_page_save_request(
                 None,
                 &mut sd,
                 &mut save_request_first_page_consumer,
@@ -371,7 +378,7 @@ mod tests {
         }
     }
 
-    fn assert_and_handle_first_page_save_request(
+    fn assert_and_handle_page_save_request(
         expected_first_page_save_request: Option<page::PageId>,
         sd: &mut [Option<page::Page>; 4],
         save_request_first_page_consumer: &mut Consumer<page::Page, 4>,
